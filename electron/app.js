@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron';
+import { BrowserWindow, ipcMain } from 'electron';
 
 import { PimData } from './data/PimData.js';
 
@@ -14,4 +14,16 @@ ipcMain.handle('setData', (_, data) => {
         return false;
     }
     return true;
+});
+
+ipcMain.handle('openOrCloseDevTools', () => {
+    const window = BrowserWindow.getFocusedWindow();
+    if (window) {
+        if (window.webContents.isDevToolsOpened()) {
+            window.webContents.closeDevTools();
+        }
+        else {
+            window.webContents.openDevTools();
+        }
+    }
 });

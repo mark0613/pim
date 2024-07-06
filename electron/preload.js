@@ -14,4 +14,5 @@ window.addEventListener('DOMContentLoaded', () => {
 contextBridge.exposeInMainWorld('api', {
     getData: () => ipcRenderer.invoke('getData'),
     setData: (data) => ipcRenderer.invoke('setData', data),
+    openOrCloseDevTools: () => ipcRenderer.invoke('openOrCloseDevTools'),
 });
