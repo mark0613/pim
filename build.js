@@ -22,9 +22,9 @@ builder.build({
         files: [
             'dist/react/**/*',
             'node_modules/**/*',
+            'electron/**/*',
             'package.json',
             'main.js',
-            'preload.js',
         ],
         extends: null,
     },

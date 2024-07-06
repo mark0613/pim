@@ -3,6 +3,11 @@ import isDev from 'electron-is-dev';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
+/* eslint-disable import/extensions */
+import './electron/app.js';
+
+import { PimData } from './electron/data/PimData.js';
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 function createWindow() {
@@ -10,7 +15,7 @@ function createWindow() {
         width: 800,
         height: 600,
         webPreferences: {
-            preload: join(__dirname, 'preload.js'),
+            preload: join(__dirname, 'electron/preload.js'),
         },
     });
 
@@ -24,11 +29,16 @@ function createWindow() {
 
 app.whenReady().then(() => {
     createWindow();
+
+    PimData.load();
+
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) createWindow();
     });
 });
 
 app.on('window-all-closed', () => {
+    PimData.store();
+
     if (process.platform !== 'darwin') app.quit();
 });

@@ -30,6 +30,14 @@ module.exports = {
                 ],
             },
         },
+
+        // override "import/extensions" rule for "electron" folder
+        {
+            files: ['electron/**/*.js'],
+            rules: {
+                'import/extensions': 'off',
+            },
+        },
     ],
     parserOptions: {
         ecmaVersion: 'latest',
