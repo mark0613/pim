@@ -11,7 +11,7 @@ import { CopyOutlined } from '@ant-design/icons';
 
 import { copyToClipboard } from '../../utils/clipboard';
 
-export const TextArea = ({ name, label, value = '' }) => {
+export const TextArea = ({ name, label, value = '', style = {} }) => {
     const textareaRef = useRef(null);
 
     const handleCopy = async () => {
@@ -22,6 +22,7 @@ export const TextArea = ({ name, label, value = '' }) => {
         <Form.Item
             name={name}
             label={label}
+            style={style}
         >
             <Space.Compact
                 style={{

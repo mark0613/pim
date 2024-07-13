@@ -11,9 +11,8 @@ import { CopyOutlined } from '@ant-design/icons';
 
 import { copyToClipboard } from '../../utils/clipboard';
 
-export const BaseInput = ({ name, label, value = '', type = 'text' }) => {
+export const BaseInput = ({ name, label, value = '', type = 'text', style = {} }) => {
     const inputRef = useRef(null);
-
     const InputComponent = type === 'password' ? Input.Password : Input;
 
     const handleCopy = async () => {
@@ -24,6 +23,7 @@ export const BaseInput = ({ name, label, value = '', type = 'text' }) => {
         <Form.Item
             name={name}
             label={label}
+            style={style}
         >
             <Space.Compact style={{ width: '100%' }}>
                 <InputComponent defaultValue={value} ref={inputRef} />

@@ -1,3 +1,5 @@
+/* eslint-disable react/jsx-props-no-spreading */
+
 import { useEffect, useState } from 'react';
 
 import {
@@ -10,7 +12,10 @@ import {
     Spin,
     Typography,
 } from 'antd';
-import { SaveOutlined } from '@ant-design/icons';
+import {
+    CloseCircleOutlined,
+    SaveOutlined,
+} from '@ant-design/icons';
 
 import { ElectronApi } from '../api';
 import { AddInputItem } from '../components/action';
@@ -45,6 +50,29 @@ const getFormDefaultValues = (data) => (
         },
         {},
     )
+);
+
+const WithDeleteButton = ({ children, onDelete = () => {}, ...props }) => (
+    <div
+        style={{
+            display: 'flex',
+            gap: '8px',
+            alignItems: 'start',
+
+        }}
+        {...props}
+    >
+        <Button
+            type="text"
+            danger
+            icon={<CloseCircleOutlined />}
+            onClick={onDelete}
+            style={{
+                height: '100%',
+            }}
+        />
+        {children}
+    </div>
 );
 
 export const ManagerContainer = () => {
@@ -87,6 +115,12 @@ export const ManagerContainer = () => {
         setSaving(false);
     };
 
+    const handleDelete = (index) => {
+        const data = [...formItemData];
+        data.splice(index, 1);
+        setFormItemData(data);
+    };
+
     useEffect(() => {
         (async () => {
             const data = await ElectronApi.getData();
@@ -126,11 +160,20 @@ export const ManagerContainer = () => {
                         />
                     )
                     : (
-                        formItemData.map(({ component, props }) => {
+                        formItemData.map(({ component, props }, index) => {
                             const Component = InputFactory.create({ type: component });
-                            /* eslint-disable react/jsx-props-no-spreading */
+
                             return (
-                                <Component key={props.name} {...props} />
+                                <WithDeleteButton
+                                    key={props.name}
+                                    onDelete={() => handleDelete(index)}
+                                >
+                                    <Component
+                                        key={props.name}
+                                        style={{ flex: 'auto' }}
+                                        {...props}
+                                    />
+                                </WithDeleteButton>
                             );
                         })
                     )
