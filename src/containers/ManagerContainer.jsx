@@ -52,6 +52,39 @@ const getFormDefaultValues = (data) => (
     )
 );
 
+const EmptyData = () => (
+    <Empty
+        description={(
+            <Space direction="vertical">
+                <Title level={4} type="secondary">沒有資料</Title>
+                <Text type="secondary">試試點擊下方的 Add 新增一個欄位吧！</Text>
+            </Space>
+        )}
+        style={{
+            marginBottom: '16px',
+        }}
+    />
+);
+
+const FormItemData = ({ data, onDelete = () => {} }) => (
+    data.map(({ component, props }, index) => {
+        const Component = InputFactory.create({ type: component });
+
+        return (
+            <WithDeleteButton
+                key={props.name}
+                onDelete={() => onDelete(index)}
+            >
+                <Component
+                    key={props.name}
+                    style={{ flex: 'auto' }}
+                    {...props}
+                />
+            </WithDeleteButton>
+        );
+    })
+);
+
 const WithDeleteButton = ({ children, onDelete = () => {}, ...props }) => (
     <div
         style={{
@@ -147,35 +180,13 @@ export const ManagerContainer = () => {
             {
                 (formItemData.length === 0)
                     ? (
-                        <Empty
-                            description={(
-                                <Space direction="vertical">
-                                    <Title level={4} type="secondary">沒有資料</Title>
-                                    <Text type="secondary">試試點擊下方的 Add 新增一個欄位吧！</Text>
-                                </Space>
-                            )}
-                            style={{
-                                marginBottom: '16px',
-                            }}
-                        />
+                        <EmptyData />
                     )
                     : (
-                        formItemData.map(({ component, props }, index) => {
-                            const Component = InputFactory.create({ type: component });
-
-                            return (
-                                <WithDeleteButton
-                                    key={props.name}
-                                    onDelete={() => handleDelete(index)}
-                                >
-                                    <Component
-                                        key={props.name}
-                                        style={{ flex: 'auto' }}
-                                        {...props}
-                                    />
-                                </WithDeleteButton>
-                            );
-                        })
+                        <FormItemData
+                            data={formItemData}
+                            onDelete={handleDelete}
+                        />
                     )
             }
             <Space direction="vertical">
