@@ -1,6 +1,6 @@
 export class ElectronApi {
     static async getData() {
-        return (await window.api?.getData())?.default || [];
+        return (await window.api?.getData()) || {};
     }
 
     static async setData(data) {

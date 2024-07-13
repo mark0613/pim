@@ -156,7 +156,7 @@ export const ManagerContainer = () => {
 
     useEffect(() => {
         (async () => {
-            const data = await ElectronApi.getData();
+            const data = (await ElectronApi.getData())?.default || [];
             setFormItemData(completeData(data));
             setInitializing(false);
         })();
