@@ -1,3 +1,4 @@
+import isDev from 'electron-is-dev';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -14,7 +15,8 @@ export class DataManager {
     static getFilePath() {
         this.checkFilename();
         const userFolder = os.homedir();
-        const pimFolder = path.join(userFolder, 'pim');
+        const pimFolderName = isDev ? 'pim-dev' : 'pim';
+        const pimFolder = path.join(userFolder, pimFolderName);
 
         if (!fs.existsSync(pimFolder)) {
             fs.mkdirSync(pimFolder, { recursive: true });
