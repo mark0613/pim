@@ -2,7 +2,7 @@ import { BrowserWindow, ipcMain } from 'electron';
 
 import { PimData } from './data/PimData.js';
 
-ipcMain.handle('getData', () => PimData.getData() || {});
+ipcMain.handle('getData', () => PimData.getData());
 
 ipcMain.handle('setData', (_, data) => {
     try {

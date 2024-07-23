@@ -8,25 +8,28 @@ import {
     Empty,
     Form,
     message,
+    Modal,
     Space,
     Spin,
+    Tabs,
     Typography,
 } from 'antd';
 import {
     CloseCircleOutlined,
+    ExclamationCircleOutlined,
     SaveOutlined,
 } from '@ant-design/icons';
 
 import { ElectronApi } from '../api';
 import { AddInputItem } from '../components/action';
-import { InputFactory } from '../components/input';
+import { EditableText, InputFactory } from '../components/input';
 import { InputType } from '../constants/input';
 
 const { Text, Title } = Typography;
 
-const completeData = (data) => (
-    data.map(({ component, props }) => {
-        const name = props.name || `${props.label.toLowerCase()}-${Date.now()}`;
+const fillName = (formData) => (
+    formData.map(({ component, props }) => {
+        const name = props.name || `${Date.now()}`;
         return {
             component,
             props: {
@@ -37,20 +40,103 @@ const completeData = (data) => (
     })
 );
 
-const getFormDefaultValues = (data) => (
-    data.reduce(
-        (acc, { component, props }) => {
+const convertRawData = (data) => {
+    const result = {};
+    data.forEach(({ tab, form }) => {
+        result[tab] = [...fillName(form)];
+    });
+    return result;
+};
+
+const getFormDefaultValues = (data) => {
+    const result = {};
+    Object.values(data).forEach((form) => {
+        form.forEach(({ component, props }) => {
             if (Object.values(InputType).includes(component)) {
-                return {
-                    ...acc,
-                    [props.name]: props.value || '',
-                };
+                result[props.name] = props.value || '';
             }
-            return acc;
-        },
-        {},
-    )
-);
+        });
+    });
+    return result;
+};
+
+const generateTabFormItems = ({
+    data,
+    onInputAdd = () => {},
+    onInputDelete = () => {},
+    onTabRename = () => {},
+}) => {
+    const tabChildrenMap = {};
+    Object.entries(data).forEach(([tab, form]) => {
+        tabChildrenMap[tab] = form.map(({ component, props }, index) => {
+            const Component = InputFactory.create({ type: component });
+            return (
+                <WithDeleteButton
+                    key={props.name}
+                    onDelete={() => onInputDelete({ tab, index })}
+                >
+                    <Component
+                        key={props.name}
+                        style={{ flex: 'auto' }}
+                        {...props}
+                    />
+                </WithDeleteButton>
+            );
+        });
+    });
+
+    const validate = (text) => {
+        if (text.trim() === '') {
+            message.error('標籤不能為空');
+            return false;
+        }
+
+        if (tabChildrenMap[text]) {
+            message.error(`標籤 '${text}' 重複`);
+            return false;
+        }
+
+        return true;
+    };
+
+    const items = Object
+        .entries(tabChildrenMap)
+        .map(([tab, children], index) => (
+            {
+                label: (
+                    <EditableText
+                        value={tab}
+                        validate={validate}
+                        onSubmit={(newTab) => onTabRename(tab, newTab)}
+                        style={{
+                            width: '80px',
+                        }}
+                    />
+                ),
+                key: tab,
+                children: (
+                    <>
+                        {
+                            children.length > 0
+                                ? children
+                                : <EmptyData />
+                        }
+                        <Card
+                            style={{
+                                border: '1px dashed #d9d9d9',
+                            }}
+                        >
+                            <AddInputItem
+                                onAdd={(props) => onInputAdd({ tab, ...props })}
+                            />
+                        </Card>
+                    </>
+                ),
+                closable: index !== 0,
+            }
+        ));
+    return items;
+};
 
 const EmptyData = () => (
     <Empty
@@ -64,25 +150,6 @@ const EmptyData = () => (
             marginBottom: '16px',
         }}
     />
-);
-
-const FormItemData = ({ data, onDelete = () => {} }) => (
-    data.map(({ component, props }, index) => {
-        const Component = InputFactory.create({ type: component });
-
-        return (
-            <WithDeleteButton
-                key={props.name}
-                onDelete={() => onDelete(index)}
-            >
-                <Component
-                    key={props.name}
-                    style={{ flex: 'auto' }}
-                    {...props}
-                />
-            </WithDeleteButton>
-        );
-    })
 );
 
 const WithDeleteButton = ({ children, onDelete = () => {}, ...props }) => (
@@ -110,13 +177,73 @@ const WithDeleteButton = ({ children, onDelete = () => {}, ...props }) => (
 
 export const ManagerContainer = () => {
     const [initializing, setInitializing] = useState(true);
-    const [formItemData, setFormItemData] = useState([]);
+    const [formTabItemData, setFormTabItemData] = useState({});
+    const [activeTab, setActiveTab] = useState('');
     const [saving, setSaving] = useState(false);
 
-    const addItem = ({ type, label }) => {
-        const name = `${label.toLowerCase()}-${Date.now()}`;
-        setFormItemData([
-            ...formItemData,
+    const [modal, contextHolder] = Modal.useModal();
+
+    const addTabItem = () => {
+        let { length } = Object.keys(formTabItemData);
+        let tab = `new-${length}`;
+        while (formTabItemData[tab]) {
+            length += 1;
+            tab = `new-${length}`;
+        }
+        setFormTabItemData({
+            ...formTabItemData,
+            [tab]: [],
+        });
+        setActiveTab(tab);
+    };
+
+    const removeTabItem = (targetKey) => {
+        const newTab = { ...formTabItemData };
+        delete newTab[targetKey];
+        setFormTabItemData(newTab);
+        setActiveTab(Object.keys(newTab)[0]);
+    };
+
+    const confirmRemoveTabItem = (targetKey) => {
+        modal.confirm({
+            title: '注意',
+            icon: <ExclamationCircleOutlined />,
+            content: '此標籤底下還有資料，確定要刪除嗎？',
+            okText: '確認',
+            cancelText: '取消',
+            onOk: () => {
+                removeTabItem(targetKey);
+            },
+        });
+    };
+
+    const handleTabEdit = (targetKey, action) => {
+        if (action === 'add') {
+            addTabItem('new');
+        }
+        else if (action === 'remove') {
+            if (formTabItemData[targetKey].length > 0) {
+                confirmRemoveTabItem(targetKey);
+            }
+            else {
+                removeTabItem(targetKey);
+            }
+        }
+    };
+
+    const handleTabRename = (oldTab, newTab) => {
+        const newTabData = { ...formTabItemData };
+        newTabData[newTab] = newTabData[oldTab];
+        delete newTabData[oldTab];
+        setFormTabItemData(newTabData);
+        setActiveTab(newTab);
+    };
+
+    const addInputItem = ({ tab, type, label }) => {
+        const name = `${Date.now()}`;
+        const oldData = formTabItemData[tab];
+        const newData = [
+            ...oldData,
             {
                 component: type,
                 props: {
@@ -125,20 +252,34 @@ export const ManagerContainer = () => {
                     name,
                 },
             },
-        ]);
+        ];
+        setFormTabItemData({
+            ...formTabItemData,
+            [tab]: newData,
+        });
     };
 
     const handleSave = async (values) => {
-        const toSaveData = [...formItemData];
-        Object.keys(values).forEach((key) => {
-            const item = toSaveData.find(({ props }) => props.name === key);
-            if (item) {
-                item.props.value = values[key];
-            }
-        });
+        const toSaveData = Object.entries(formTabItemData).reduce(
+            (acc, [tab, form]) => [
+                ...acc,
+                {
+                    tab,
+                    form: form.map(({ component, props }) => ({
+                        component,
+                        props: {
+                            ...props,
+                            value: values[props.name],
+                        },
+                    })),
+                },
+            ],
+            [],
+        );
+
         try {
             setSaving(true);
-            await ElectronApi.setData({ default: toSaveData });
+            await ElectronApi.setData(toSaveData);
             message.success('儲存成功');
         }
         catch (e) {
@@ -148,17 +289,21 @@ export const ManagerContainer = () => {
         setSaving(false);
     };
 
-    const handleDelete = (index) => {
-        const data = [...formItemData];
-        data.splice(index, 1);
-        setFormItemData(data);
+    const handleDelete = ({ tab, index }) => {
+        const data = formTabItemData[tab];
+        const newData = data.filter((_, i) => i !== index);
+        setFormTabItemData({
+            ...formTabItemData,
+            [tab]: newData,
+        });
     };
 
     useEffect(() => {
         (async () => {
-            const data = (await ElectronApi.getData())?.default || [];
-            setFormItemData(completeData(data));
+            const data = convertRawData(await ElectronApi.getData());
+            setFormTabItemData(data);
             setInitializing(false);
+            setActiveTab(Object.keys(data)[0]);
         })();
     }, []);
 
@@ -167,45 +312,49 @@ export const ManagerContainer = () => {
     }
 
     const initialValues = {
-        ...getFormDefaultValues(formItemData),
+        ...getFormDefaultValues(formTabItemData),
         inputType: InputType.INPUT,
     };
 
     return (
-        <Form
-            layout="vertical"
-            initialValues={initialValues}
-            onFinish={handleSave}
-        >
-            {
-                (formItemData.length === 0)
-                    ? (
-                        <EmptyData />
-                    )
-                    : (
-                        <FormItemData
-                            data={formItemData}
-                            onDelete={handleDelete}
-                        />
-                    )
-            }
-            <Space direction="vertical">
-                <Card
+        <>
+            <Form
+                layout="vertical"
+                initialValues={initialValues}
+                onFinish={handleSave}
+                style={{
+                    width: '100%',
+                }}
+            >
+                <Tabs
+                    type="editable-card"
+                    activeKey={activeTab}
+                    onChange={setActiveTab}
+                    tabBarExtraContent={(
+                        <Button
+                            type="primary"
+                            htmlType="submit"
+                            icon={<SaveOutlined />}
+                            loading={saving}
+                        >
+                            Save
+                        </Button>
+                    )}
+                    items={
+                        generateTabFormItems({
+                            data: formTabItemData,
+                            onInputAdd: addInputItem,
+                            onInputDelete: handleDelete,
+                            onTabRename: handleTabRename,
+                        })
+                    }
+                    onEdit={handleTabEdit}
                     style={{
-                        border: '1px dashed #d9d9d9',
+                        width: '100%',
                     }}
-                >
-                    <AddInputItem onAdd={addItem} />
-                </Card>
-                <Button
-                    type="primary"
-                    htmlType="submit"
-                    icon={<SaveOutlined />}
-                    loading={saving}
-                >
-                    Save
-                </Button>
-            </Space>
-        </Form>
+                />
+            </Form>
+            {contextHolder}
+        </>
     );
 };

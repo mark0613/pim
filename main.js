@@ -12,6 +12,7 @@ import { fileURLToPath } from 'url';
 import './electron/app.js';
 
 import { PimData } from './electron/data/PimData.js';
+import { migrate } from './electron/migrations/migrate.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -40,11 +41,24 @@ function registerShortcuts(window) {
     });
 }
 
+function loadData() {
+    PimData.load();
+    const data = migrate(PimData.getData());
+    if (data.length === 0) {
+        data.push({
+            tab: 'Default',
+            form: [],
+        });
+    }
+    PimData.setData(data);
+    PimData.store();
+}
+
 app.whenReady().then(() => {
     const window = createWindow();
     registerShortcuts(window);
 
-    PimData.load();
+    loadData();
 
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) createWindow();

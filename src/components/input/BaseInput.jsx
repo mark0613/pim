@@ -19,6 +19,12 @@ export const BaseInput = ({ name, label, value = '', type = 'text', style = {} }
         await copyToClipboard(inputRef, message);
     };
 
+    const handleKeyDown = (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+        }
+    };
+
     return (
         <Form.Item
             name={name}
@@ -26,7 +32,11 @@ export const BaseInput = ({ name, label, value = '', type = 'text', style = {} }
             style={style}
         >
             <Space.Compact style={{ width: '100%' }}>
-                <InputComponent defaultValue={value} ref={inputRef} />
+                <InputComponent
+                    defaultValue={value}
+                    ref={inputRef}
+                    onKeyDown={handleKeyDown}
+                />
                 <Button icon={<CopyOutlined />} onClick={handleCopy} />
             </Space.Compact>
         </Form.Item>
