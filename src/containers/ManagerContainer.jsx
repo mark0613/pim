@@ -27,14 +27,16 @@ import { InputType } from '../constants/input';
 
 const { Text, Title } = Typography;
 
-const fillName = (formData) => (
+const fillData = (formData) => (
     formData.map(({ component, props }) => {
         const name = props.name || `${Date.now()}`;
+        const value = props.value || '';
         return {
             component,
             props: {
                 ...props,
                 name,
+                value,
             },
         };
     })
@@ -43,7 +45,7 @@ const fillName = (formData) => (
 const convertRawData = (data) => {
     const result = {};
     data.forEach(({ tab, form }) => {
-        result[tab] = [...fillName(form)];
+        result[tab] = [...fillData(form)];
     });
     return result;
 };
@@ -53,7 +55,7 @@ const getFormDefaultValues = (data) => {
     Object.values(data).forEach((form) => {
         form.forEach(({ component, props }) => {
             if (Object.values(InputType).includes(component)) {
-                result[props.name] = props.value || '';
+                result[props.name] = props.value;
             }
         });
     });
@@ -133,6 +135,7 @@ const generateTabFormItems = ({
                     </>
                 ),
                 closable: index !== 0,
+                forceRender: true,
             }
         ));
     return items;

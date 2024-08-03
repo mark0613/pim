@@ -1,7 +1,7 @@
 {
     "name": "pim",
     "private": true,
-    "version": "0.0.2",
+    "version": "0.0.3",
     "description": "Personal Information Manager",
     "author": "Mark Ma",
     "type": "module",
